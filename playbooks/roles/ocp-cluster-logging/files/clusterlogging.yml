@@ -2,7 +2,7 @@
 # Set the default collector type
 - set_fact:
     collector_type: "{{ log_collector_type | default('fluentd', true) }}"
-
+    clo_version: "{{ cluster_logging_channel | regex_search('\\d+\\.\\d+') | float }}"
 # Check if the ClusterLogging CR is exists
 - name: Check if the ClusterLogging instance exists
   shell: oc get ClusterLogging -n openshift-logging | wc -l
@@ -60,6 +60,33 @@
       type: {{ collector_type }}
       {{ collector_type }}: {}
   register: cl_cr
+  when: clo_version <= 5.8
+
+- name: Create an instance for logging operator
+  k8s:
+    state: present
+    definition:
+      apiVersion: "logging.openshift.io/v1"
+      kind: "ClusterLogging"
+      metadata:
+        name: "instance"
+        namespace: "openshift-logging"
+        annotations:
+          logging.openshift.io/preview-vector-collector: "{{ (collector_type == 'vector') | ternary('enabled', omit) }}"
+      spec:
+        managementState: "Managed"
+        logStore:
+          type: "lokistack"
+          lokistack:
+            name: lokistack-sample
+        collection:
+          logs: "{{ collector_spec | from_yaml }}"
+  vars:
+    collector_spec: |
+      type: {{ collector_type }}
+      {{ collector_type }}: {}
+  register: cl_cr
+  when: clo_version == 5.9
 
 # Check if deployment is successfull
 - name: Check the deployment
