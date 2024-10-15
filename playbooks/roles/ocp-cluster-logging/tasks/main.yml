@@ -1,4 +1,9 @@
 ---
+# Set log_labels
+- set_fact:
+      log_labels: "{{ log_label | default('test-clf', true) }}"
+      clo_version: "{{ cluster_logging_channel | regex_search('\\d+\\.\\d+') | float }}"
+
 - name: Check channel variables
   fail:
     msg: Please check Channel variables for ClusterLogging and ElasticSearch Operators.
@@ -14,11 +19,6 @@
         (cluster_logging_channel == "" or loki_channel == "") or
         (cluster_logging_channel == None or loki_channel == None) or
         clo_version >= 5.9
-
-# Set log_labels
-- set_fact:
-      log_labels: "{{ log_label | default('test-clf', true) }}"
-      clo_version: "{{ cluster_logging_channel | regex_search('\\d+\\.\\d+') | float }}"
 
 # Set log directory
 - set_fact:
