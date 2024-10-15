@@ -10,7 +10,7 @@
   when: >
         (cluster_logging_channel == "" or elastic_search_channel == "") or
         (cluster_logging_channel == None or elastic_search_channel == None) or
-        clo_version <= 5.8
+        clo_version | float <= 5.8
 
 - name: Check channel variables
   fail:
@@ -18,7 +18,7 @@
   when: >
         (cluster_logging_channel == "" or loki_channel == "") or
         (cluster_logging_channel == None or loki_channel == None) or
-        clo_version >= 5.9
+        clo_version | float >= 5.9
 
 # Set log directory
 - set_fact:
@@ -74,7 +74,7 @@
   when: 
     - elasticsearch_clf_cs != '' and clusterlogging_clf_cs != ''  
     - elasticsearch_clf_cs != None and clusterlogging_clf_cs != None
-    - clo_version <= 5.8
+    - clo_version | float <= 5.8
 
 - name: Create ImageContentSourcePolicy and CatalogSource
   block: 
@@ -105,7 +105,7 @@
   when: 
     - loki_clf_cs != '' and clusterlogging_clf_cs != ''  
     - loki_clf_cs != None and clusterlogging_clf_cs != None
-    - clo_version >= 5.9
+    - clo_version | float >= 5.9
 
 # Default CatalogSource
 - name: Use default sources
@@ -137,7 +137,7 @@
   when: >
         (elasticsearch_clf_cs == "" or clusterlogging_clf_cs == None) or
         (clusterlogging_clf_cs == "" or elasticsearch_clf_cs == None) or 
-        clo_version <= 5.8
+        clo_version | float <= 5.8
 
 - name: Use default sources
   block: 
@@ -168,7 +168,7 @@
   when: >
         (loki_clf_cs == "" or clusterlogging_clf_cs == None) or
         (clusterlogging_clf_cs == "" or loki_clf_cs == None) or
-        clo_version >= 5.9
+        clo_version | float >= 5.9
      
 # Check if default storage class has exists
 - name: Check if default storage class has exists
