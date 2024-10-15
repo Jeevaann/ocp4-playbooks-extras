@@ -60,7 +60,7 @@
       type: {{ collector_type }}
       {{ collector_type }}: {}
   register: cl_cr
-  when: clo_version <= 5.8
+  when: clo_version | float <= 5.8
 
 - name: Create an instance for logging operator
   k8s:
@@ -86,7 +86,7 @@
       type: {{ collector_type }}
       {{ collector_type }}: {}
   register: cl_cr
-  when: clo_version == 5.9
+  when: clo_version | float == 5.9
 
 # Create a ConfigMap for lokistack
 - name: Create ConfigMap for lokistack
@@ -100,7 +100,7 @@
         namespace: openshift-logging
         annotations:
           service.beta.openshift.io/inject-cabundle: "true"
-  when: clo_version >= 5.9
+  when: clo_version | float >= 5.9
 
 # Create a Role binding for lokistack
 - name: Create Cluster Role for lokistack
@@ -123,7 +123,7 @@
         verbs:
         - 'get'
         - 'create'
-    when: clo_version >= 5.9
+    when: clo_version | float >= 5.9
 - name: Create Role binding for lokistack
   k8s:
     state: present
@@ -140,7 +140,7 @@
       - kind: ServiceAccount
         name: logcollector
         namespace: openshift-logging
-  when: clo_version >= 5.9		  
+  when: clo_version | float >= 5.9		  
 
 # Create lokistack
 - name: Create lokistack
@@ -170,7 +170,7 @@
           namespaceSelector:
             matchLabels:
               openshift.io/cluster-monitoring: 'true'
-  when: clo_version >= 5.9
+  when: clo_version | float >= 5.9
 
 # Create a loki log forwarder
 - name: Create loki logforwarder
@@ -191,7 +191,7 @@
             - audit
             outputRefs:
             - default			  
-  when: clo_version == 5.9
+  when: clo_version | float == 5.9
 
 - name: Create loki logforwarder
   k8s:
@@ -228,14 +228,14 @@
               - lokistack
         serviceAccount:
           name: logcollector
-  when: clo_version >= 6.0
+  when: clo_version | float >= 6.0
  
 
 - name: Check lokistack secret exists
   shell: oc get secret -n openshift-logging | grep "lokicred-secret" | wc -l
   register: lokisecret
   failed_when: lokisecret.stdout|int == 0
-  when: clo_version >= 5.9
+  when: clo_version | float >= 5.9
 
 # Check if deployment is successfull
 - name: Check the deployment

@@ -163,7 +163,7 @@
 
   - name: Set fact variable for subscription
     set_fact:
-      elasticsearch_op_source: "redhat-operators"
+      loki_op_source: "redhat-operators"
       cluster_logging_op_source: "redhat-operators"
   when: >
         (loki_clf_cs == "" or clusterlogging_clf_cs == None) or
@@ -183,7 +183,7 @@
   when: storage_class.failed
 
 # Creating namespaces 
-- name: Create namespace for elasticsearch/loki and cluster logging
+- name: Create namespace for Elasticsearch/loki and cluster logging
   k8s:
     state: present
     definition:
@@ -243,7 +243,7 @@
   loop:
   - { name: 'cluster-logging', namespace: 'openshift-logging', channel: "{{cluster_logging_channel}}" , cs_src: "{{cluster_logging_op_source}}" }
   - { name: 'elasticsearch-operator', namespace: 'openshift-operators-redhat', channel: "{{elastic_search_channel}}", cs_src: "{{elasticsearch_op_source}}" }
-  when: clo_version <= 5.8
+  when: clo_version | float <= 5.8
 
 - name: Subscription for cluster-logging operator
   k8s:
@@ -263,7 +263,7 @@
   loop:
   - { name: 'cluster-logging', namespace: 'openshift-logging', channel: "{{cluster_logging_channel}}" , cs_src: "{{cluster_logging_op_source}}" }
   - { name: 'loki-operator', namespace: 'openshift-operators-redhat', channel: "{{loki_channel}}", cs_src: "{{loki_op_source}}" }
-  when: clo_version >= 5.9
+  when: clo_version | float >= 5.9
 
 # Verify the operator installation.
 - name: Verify the operator installation
@@ -281,7 +281,7 @@
 
 - name: Create ClusterLogging instance 
   include_tasks: "{{ role_path }}/files/clusterlogging.yml"
-  when: clo_version <= 5.8
+  when: clo_version | float <= 5.8
 
 # Testcase-1 deployment of nginx pod in default namespace
 - name: Create a nginx pod in default namespace for test

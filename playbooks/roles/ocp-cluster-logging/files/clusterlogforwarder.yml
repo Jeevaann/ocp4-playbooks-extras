@@ -23,21 +23,21 @@
     src: "{{ role_path }}/templates/clf-instance.yml.j2"
     dest: "{{ role_path }}/files/clf-instance.yml"
   delegate_to: localhost
-  when: clo_version < 6.0
+  when: clo_version | float < 6.0
 
 - name: Generating ClusterLogForwarder file
   template:
     src: "{{ role_path }}/templates/new-clf-instance.yml.j2"
     dest: "{{ role_path }}/files/new-clf-instance.yml"
   delegate_to: localhost
-  when: clo_version >= 6.0
+  when: clo_version | float >= 6.0
 
 # Creating ClusterLogForwarder custom resource
 - include_tasks: "{{ role_path }}/files/clf-instance.yml"
-  when: clo_version < 6.0
+  when: clo_version | float < 6.0
 
 - include_tasks: "{{ role_path }}/files/new-clf-instance.yml"
-  when: clo_version >= 6.0
+  when: clo_version | float >= 6.0
 
 # Check if the pods are in good state
 - name: Check the logging pods are in good state
