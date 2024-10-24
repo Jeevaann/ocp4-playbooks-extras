@@ -5,82 +5,113 @@
       apiVersion: observability.openshift.io/v1
       kind: ClusterLogForwarder
       metadata:
-        name: instance 
+        name: collector
         namespace: openshift-logging 
       spec:
+        filters:
+          - name: my-app-label
+            openshiftLabels:
+              label: "{{ app_log_label }}"
+            type: openshiftLabels
+          - name: my-audit-label
+            openshiftLabels:
+              label: "{{ audit_log_label }}"
+            type: openshiftLabels
+          - name: my-infra-label
+            openshiftLabels:
+              label: "{{ infra_log_label }}"
+            type: openshiftLabels
         outputs:
+          - lokistack:
+              authentication:
+                token:
+                  from: serviceAccount
+              target:
+                name: lokistack-sample
+                namespace: openshift-logging
+            name: lokistack
+            tls:
+              ca:
+                configMapName: lokistack-sample-gateway-ca-bundle
+                key: service-ca.crt
+            type: lokistack
+        pipelines:
+          - inputRefs:
+              - application
+            name: forward-app-to-lokistack
+            filterRefs:
+              - my-app-label
+            outputRefs:
+              - lokistack
+          - inputRefs:
+              - audit
+            name: forward-audit-to-lokistack
+            filterRefs:
+              - my-audit-label
+            outputRefs:
+              - lokistack
+          - inputRefs:
+              - infrastructure
+            name: forward-infra-to-lokistack
+            filterRefs:
+              - my-infra-label
+            outputRefs:
+              - lokistack
 {% if elasticsearch_server_url is defined %}
-        - name: elasticsearch-insecure
+        - name: es-user
           type: elasticsearch
-          url: "{{ elasticsearch_server_url }}" 
-{% endif %}
-{% if syslog_server_url is defined %}
-        - name: rsyslog-application
-          type: syslog 
-          syslog: 
-            appName: "app-logs"
-            facility: user
-            rfc: RFC5424
-            msgID: mymsg
-            procID: myproc
-            severity: informational
-          url: "{{ syslog_server_url }}"
-{% if 'tls' in syslog_server_url %}
-          secret: 
-              name: syslog-secret
-{% endif %}
-        - name: rsyslog-infra
-          type: syslog 
-          syslog: 
-            appName: "infra-logs"
-            facility: user
-            rfc: RFC5424
-            msgID: mymsg
-            procID: myproc
-            severity: informational
-          url: "{{ syslog_server_url }}"
-{% if 'tls' in syslog_server_url %}
-          secret: 
-              name: syslog-secret
-{% endif %}
-        - name: rsyslog-audit
-          type: syslog 
-          syslog: 
-            appName: "audit-logs"
-            facility: user
-            rfc: RFC5424
-            msgID: mymsg
-            procID: myproc
-            severity: informational
-          url: "{{ syslog_server_url }}"
-{% if 'tls' in syslog_server_url %}
-          secret: 
-              name: syslog-secret
-{% endif %}
+          elasticsearch:
+            index: '{.log_type||"none"}'
+            tuning:
+              compression: zlib
+              deliveryMode: AtLeastOnce
+              maxRetryDuration: 30
+              maxWrite: 20M
+              minRetryDuration: 10
+            version: 8
+            url: "{{ elasticsearch_server_url }}" 
 {% endif %}
 {% if kafka_server_url is defined %}
-        - name: kafka-app-logs
+        - kafka:
+            brokers:
+            - "{{ kafka_server_url }}/{{ app_log_label }}"
+            topic: app-topic-299
+            tuning:
+              compression: snappy
+              delivery: atLeastOnce
+          name: kafka-app-logs
           type: kafka
-          url: "{{ kafka_server_url }}/{{ app_log_label }}"
-        - name: kafka-infra-logs
+        - kafka:
+            brokers:
+            - "{{ kafka_server_url }}/{{ app_log_label }}"
+            topic: audit-topic-300
+            tuning:
+              compression: snappy
+              delivery: atLeastOnce
+          name: kafka-audit-logs
           type: kafka
-          url: "{{ kafka_server_url }}/{{ infra_log_label }}"
-        - name: kafka-audit-logs
+        - kafka:
+            brokers:
+            - "{{ kafka_server_url }}/{{ app_log_label }}"
+            topic: infra-topic-299
+            tuning:
+              compression: snappy
+              delivery: atLeastOnce
+          name: kafka-infra-logs
           type: kafka
-          url: "{{ kafka_server_url }}/{{ audit_log_label }}"
-{% endif %}
-{% if fluentd_server_url is defined %}
-        - name: fluentd-server-insecure
-          type: fluentdForward
-          url: "{{ fluentd_server_url }}"
 {% endif %}
 {% if loki_server_url is defined %}
-        - name: loki-server
-          type: "loki"
-          url: "{{ loki_server_url }}"
+        - loki:
+            tuning:
+              compression: snappy
+              deliveryMode: AtLeastOnce
+              maxWrite: 10M
+            url: "{{ loki_server_url }}"
+          name: loki-user
+          type: loki
 {% endif %}
 {% if cw_secret is defined %}
-        - name: cloudwatch
+        - name: cloudwatch-user
           type: cloudwatch
           cloudwatch:
             authentication:
@@ -92,88 +123,68 @@
                   key: aws_secret_access_key
                   secretName: "{{ cw_secret }}"
               type: awsAccessKey
-            groupName: 'ocp-.{.log_type||"none-typed-logs"}'
+            groupName: 'ocp-logtest.{.log_type||"none-typed-logs"}'
             region: "{{ aws_cw_region }}"
 {% endif %}
         pipelines:
         - name: application-logs
+          filterRefs:
+          - my-app-label
           inputRefs: 
           - application
           outputRefs:
 {% if elasticsearch_server_url is defined %}
-          - elasticsearch-insecure
-{% endif %}
-{% if syslog_server_url is defined %}
-          - rsyslog-application
+          - es-user
 {% endif %}
 {% if kafka_server_url is defined %}
           - kafka-app-logs
 {% endif %}
-{% if fluentd_server_url is defined %}
-          - fluentd-server-insecure
-{% endif %}
 {% if loki_server_url is defined %}
-          - loki-server
+          - loki-user
 {% endif %}
 {% if cw_secret is defined %}
-          - cloudwatch
+          - cloudwatch-user
 {% endif %}
           - default
           parse: json 
-          labels:
-            logs: "{{ app_log_label }}"
-        - name: infrastructure-logs 
+        - name: infrastructure-logs
+          filterRefs:
+          - my-infra-label 
           inputRefs:
           - infrastructure
           outputRefs:
 {% if elasticsearch_server_url is defined %}
-          - elasticsearch-insecure
-{% endif %}
-{% if syslog_server_url is defined %}
-          - rsyslog-infra
+          - es-user
 {% endif %}
 {% if kafka_server_url is defined %}
           - kafka-infra-logs
 {% endif %}
-{% if fluentd_server_url is defined %}
-          - fluentd-server-insecure
-{% endif %}
 {% if loki_server_url is defined %}
-          - loki-server
+          - loki-user
 {% endif %}
 {% if cw_secret is defined %}
-          - cloudwatch
+          - cloudwatch-user
 {% endif %}
-          - default
           parse: json 
-          labels:
-            logs: "{{ infra_log_label }}"
-        - name: audit-logs 
+        - name: audit-logs
+          filterRefs:
+          - my-audit-label 
           inputRefs:
           - audit
           outputRefs:
 {% if elasticsearch_server_url is defined %}
-          - elasticsearch-insecure
-{% endif %}
-{% if syslog_server_url is defined %}
-          - rsyslog-audit
+          - es-user
 {% endif %}
 {% if kafka_server_url is defined %}
           - kafka-audit-logs
 {% endif %}
-{% if fluentd_server_url is defined %}
-          - fluentd-server-insecure
-{% endif %}
 {% if loki_server_url is defined %}
-          - loki-server
+          - loki-user
 {% endif %}
 {% if cw_secret is defined %}
-          - cloudwatch
+          - cloudwatch-user
 {% endif %}
-          - default
           parse: json 
-          labels: 
-            logs: "{{ audit_log_label }}"
         serviceAccount:
           name: logcollector
   register: clf_cr
@@ -190,6 +201,6 @@
       ignore_errors: yes
 
     - name: Delete PODs if not restarted Automatic
-      shell: oc delete pod $(kubectl get pods -n openshift-logging| grep 'fluent\|collector' | awk '{print $1}') -n openshift-logging
+      shell: oc delete pod $(kubectl get pods -n openshift-logging| grep 'collector' | awk '{print $1}') -n openshift-logging
       when: pods.failed
   when: clf_cr.changed

@@ -135,8 +135,8 @@
       elasticsearch_op_source: "redhat-operators"
       cluster_logging_op_source: "redhat-operators"
   when: >
-        (elasticsearch_clf_cs == "" or clusterlogging_clf_cs == None) or
-        (clusterlogging_clf_cs == "" or elasticsearch_clf_cs == None) or 
+        (elasticsearch_clf_cs == "" or clusterlogging_clf_cs == "") or
+        (clusterlogging_clf_cs == None or elasticsearch_clf_cs == None) or 
         clo_version | float <= 5.8
 
 - name: Use default sources
@@ -222,7 +222,6 @@
         namespace: openshift-logging
       spec:
         targetNamespaces:
-        - openshift-logging
 
 # Create a Subscription object OpenShift Elasticsearch Operator and Red Hat OpenShift Logging Operator.
 - name: Subscription for cluster-logging operator
