@@ -6,19 +6,18 @@
 
 - name: Check channel variables
   fail:
-    msg: Please check Channel variables for ClusterLogging and ElasticSearch Operators.
+    msg: Please check Channel variables for ClusterLogging, ElasticSearch and Loki Operators.
   when: >
-        (cluster_logging_channel == "" or elastic_search_channel == "") or
-        (cluster_logging_channel == None or elastic_search_channel == None)
-#        clo_version | float <= 5.8
+        (cluster_logging_channel == "" and elastic_search_channel == "" or loki_channel == "") or
+        (cluster_logging_channel == None and elastic_search_channel == None or loki_channel == None)
 
-- name: Check channel variables
-  fail:
-    msg: Please check Channel variables for ClusterLogging and Loki Operators.
-  when: >
-        (cluster_logging_channel == "" or loki_channel == "") or
-        (cluster_logging_channel == None or loki_channel == None)
-#        clo_version | float > 5.9 or clo_version | float >= 6.0
+# - name: Check channel variables
+#   fail:
+#     msg: Please check Channel variables for ClusterLogging and Loki Operators.
+#   when: >
+#         (cluster_logging_channel == "" or loki_channel == "") or
+#         (cluster_logging_channel == None or loki_channel == None)
+# #        clo_version | float > 5.9 or clo_version | float >= 6.0
 
 # Set log directory
 - set_fact:

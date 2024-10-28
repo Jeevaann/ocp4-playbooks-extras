@@ -135,9 +135,9 @@
     # Fetch logs from Elasticsearch
     - name: Fetch Logs from Elasticsearch
       shell: |
-        curl -XGET "{{ elasticsearch_server_url }}/infra*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ log_labels }}-infrastructure"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/infrastructure.txt
-        curl -XGET "{{ elasticsearch_server_url }}/audit*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ log_labels }}-audit"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/audit.txt
-        curl -XGET "{{ elasticsearch_server_url }}/app*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ log_labels }}-application"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/application.txt
+        curl -XGET "{{ elasticsearch_server_url }}/infra*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ infra_log_label }}"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/infrastructure.txt
+        curl -XGET "{{ elasticsearch_server_url }}/audit*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ audit_log_label }}"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/audit.txt
+        curl -XGET "{{ elasticsearch_server_url }}/app*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ app_log_label }}"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/application.txt
       when: elasticsearch_server_url is defined
 
     # Fetch logs from Loki
@@ -233,8 +233,8 @@
 
     - name: Elasticsearch clean up
       shell: |
-        curl -X POST "{{ elasticsearch_server_url }}/audit*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}" } }}'
-        curl -X POST "{{ elasticsearch_server_url }}/app*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}" } }}'
-        curl -X POST "{{ elasticsearch_server_url }}/infra*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}" } }}'
+        curl -X POST "{{ elasticsearch_server_url }}/audit*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.label":"{{ audit_log_label }}" } }}'
+        curl -X POST "{{ elasticsearch_server_url }}/app*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.label":"{{ app_log_label }}" } }}'
+        curl -X POST "{{ elasticsearch_server_url }}/infra*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.label":"{{ infra_log_label }}" } }}'
       when: elasticsearch_server_url is defined
   ignore_errors: yes
