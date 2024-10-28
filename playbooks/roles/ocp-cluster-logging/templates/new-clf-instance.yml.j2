@@ -22,109 +22,74 @@
               label: "{{ infra_log_label }}"
             type: openshiftLabels
         outputs:
-          - lokistack:
-              authentication:
-                token:
-                  from: serviceAccount
-              target:
-                name: lokistack-sample
-                namespace: openshift-logging
-            name: lokistack
-            tls:
-              ca:
-                configMapName: lokistack-sample-gateway-ca-bundle
-                key: service-ca.crt
-            type: lokistack
-        pipelines:
-          - inputRefs:
-              - application
-            name: forward-app-to-lokistack
-            filterRefs:
-              - my-app-label
-            outputRefs:
-              - lokistack
-          - inputRefs:
-              - audit
-            name: forward-audit-to-lokistack
-            filterRefs:
-              - my-audit-label
-            outputRefs:
-              - lokistack
-          - inputRefs:
-              - infrastructure
-            name: forward-infra-to-lokistack
-            filterRefs:
-              - my-infra-label
-            outputRefs:
-              - lokistack
 {% if elasticsearch_server_url is defined %}
-        - name: es-user
-          type: elasticsearch
-          elasticsearch:
-            index: '{.log_type||"none"}'
-            tuning:
-              compression: zlib
-              deliveryMode: AtLeastOnce
-              maxRetryDuration: 30
-              maxWrite: 20M
-              minRetryDuration: 10
-            version: 8
-            url: "{{ elasticsearch_server_url }}" 
+          - name: es-user
+            type: elasticsearch
+            elasticsearch:
+              index: '{.log_type||"none"}'
+              tuning:
+                compression: zlib
+                deliveryMode: AtLeastOnce
+                maxRetryDuration: 30
+                maxWrite: 20M
+                minRetryDuration: 10
+              version: 8
+              url: "{{ elasticsearch_server_url }}" 
 {% endif %}
 {% if kafka_server_url is defined %}
-        - kafka:
-            brokers:
-            - "{{ kafka_server_url }}/{{ app_log_label }}"
-            topic: app-topic-299
-            tuning:
-              compression: snappy
-              delivery: atLeastOnce
-          name: kafka-app-logs
-          type: kafka
-        - kafka:
-            brokers:
-            - "{{ kafka_server_url }}/{{ app_log_label }}"
-            topic: audit-topic-300
-            tuning:
-              compression: snappy
-              delivery: atLeastOnce
-          name: kafka-audit-logs
-          type: kafka
-        - kafka:
-            brokers:
-            - "{{ kafka_server_url }}/{{ app_log_label }}"
-            topic: infra-topic-299
-            tuning:
-              compression: snappy
-              delivery: atLeastOnce
-          name: kafka-infra-logs
-          type: kafka
+          - kafka:
+              brokers:
+              - "{{ kafka_server_url }}/{{ app_log_label }}"
+              topic: app-topic-299
+              tuning:
+                compression: snappy
+                delivery: atLeastOnce
+            name: kafka-app-logs
+            type: kafka
+          - kafka:
+              brokers:
+              - "{{ kafka_server_url }}/{{ app_log_label }}"
+              topic: audit-topic-300
+              tuning:
+                compression: snappy
+                delivery: atLeastOnce
+            name: kafka-audit-logs
+            type: kafka
+          - kafka:
+              brokers:
+              - "{{ kafka_server_url }}/{{ app_log_label }}"
+              topic: infra-topic-299
+              tuning:
+                compression: snappy
+                delivery: atLeastOnce
+            name: kafka-infra-logs
+            type: kafka
 {% endif %}
 {% if loki_server_url is defined %}
-        - loki:
-            tuning:
-              compression: snappy
-              deliveryMode: AtLeastOnce
-              maxWrite: 10M
-            url: "{{ loki_server_url }}"
-          name: loki-user
-          type: loki
+          - loki:
+              tuning:
+                compression: snappy
+                deliveryMode: AtLeastOnce
+                maxWrite: 10M
+              url: "{{ loki_server_url }}"
+            name: loki-user
+            type: loki
 {% endif %}
 {% if cw_secret is defined %}
-        - name: cloudwatch-user
-          type: cloudwatch
-          cloudwatch:
-            authentication:
-              awsAccessKey:
-                keyId:
-                  key: aws_access_key_id
-                  secretName: "{{ cw_secret }}"
-                keySecret:
-                  key: aws_secret_access_key
-                  secretName: "{{ cw_secret }}"
-              type: awsAccessKey
-            groupName: 'ocp-logtest.{.log_type||"none-typed-logs"}'
-            region: "{{ aws_cw_region }}"
+          - name: cloudwatch-user
+            type: cloudwatch
+            cloudwatch:
+              authentication:
+                awsAccessKey:
+                  keyId:
+                    key: aws_access_key_id
+                    secretName: "{{ cw_secret }}"
+                  keySecret:
+                    key: aws_secret_access_key
+                    secretName: "{{ cw_secret }}"
+                type: awsAccessKey
+              groupName: 'ocp-logtest.{.log_type||"none-typed-logs"}'
+              region: "{{ aws_cw_region }}"
 {% endif %}
         pipelines:
         - name: application-logs
@@ -145,7 +110,6 @@
 {% if cw_secret is defined %}
           - cloudwatch-user
 {% endif %}
-          - default
           parse: json 
         - name: infrastructure-logs
           filterRefs:
@@ -204,3 +168,4 @@
       shell: oc delete pod $(kubectl get pods -n openshift-logging| grep 'collector' | awk '{print $1}') -n openshift-logging
       when: pods.failed
   when: clf_cr.changed
+

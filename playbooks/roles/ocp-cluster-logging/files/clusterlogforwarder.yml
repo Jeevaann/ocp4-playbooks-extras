@@ -89,9 +89,9 @@
       - name: Save the logs on Kafka server
         shell: |
           mkdir -p {{ external_server_logs_path }}/kafka
-          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ log_labels }}-audit --max-messages 10 > {{ external_server_logs_path }}/kafka/audit.txt
-          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ log_labels }}-infrastructure --max-messages 10 > {{ external_server_logs_path }}/kafka/infrastructure.txt
-          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ log_labels }}-application --max-messages 10 > {{ external_server_logs_path }}/kafka/application.txt
+          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ app_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/audit.txt
+          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ audit_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/infrastructure.txt
+          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ infra_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/application.txt
         async: 30
         poll: 5
 
@@ -135,9 +135,9 @@
     # Fetch logs from Elasticsearch
     - name: Fetch Logs from Elasticsearch
       shell: |
-        curl -XGET "{{ elasticsearch_server_url }}/infra*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.logs":"{{ log_labels }}-infrastructure"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/infrastructure.txt
-        curl -XGET "{{ elasticsearch_server_url }}/audit*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.logs":"{{ log_labels }}-audit"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/audit.txt
-        curl -XGET "{{ elasticsearch_server_url }}/app*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.logs":"{{ log_labels }}-application"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/application.txt
+        curl -XGET "{{ elasticsearch_server_url }}/infra*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ log_labels }}-infrastructure"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/infrastructure.txt
+        curl -XGET "{{ elasticsearch_server_url }}/audit*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ log_labels }}-audit"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/audit.txt
+        curl -XGET "{{ elasticsearch_server_url }}/app*/_search" -H 'Content-Type: application/json' -d '{ "query": { "bool": { "must": [ { "match":{"openshift.labels.label":"{{ log_labels }}-application"} } ] } } }' > {{ cl_log_dir }}/elasticsearch/application.txt
       when: elasticsearch_server_url is defined
 
     # Fetch logs from Loki
@@ -151,6 +151,11 @@
     # Deleting CLF Custom Resource instance because Fluentd and CloudWatch stores the logs on their system
     - name: Delete ClusterLogForwarder
       shell: oc delete ClusterLogForwarder instance -n openshift-logging
+      when: clo_version | float <= 5.9
+
+    - name: Delete ClusterLogForwarder
+      shell: oc delete obsclf collector -n openshift-logging
+      when: clo_version | float <= 6.0
 
     - name: Check the logging pods are restarting
       shell: oc get pods -n openshift-logging --no-headers | awk '{if ($3 == "Terminating" ) print $1}' | wc -l
@@ -228,8 +233,8 @@
 
     - name: Elasticsearch clean up
       shell: |
-        curl -X POST "{{ elasticsearch_server_url }}/audit*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}-audit" } }}'
-        curl -X POST "{{ elasticsearch_server_url }}/app*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}-application" } }}'
-        curl -X POST "{{ elasticsearch_server_url }}/infra*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}-infrastructure" } }}'
+        curl -X POST "{{ elasticsearch_server_url }}/audit*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}" } }}'
+        curl -X POST "{{ elasticsearch_server_url }}/app*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}" } }}'
+        curl -X POST "{{ elasticsearch_server_url }}/infra*/_delete_by_query?pretty" -H 'Content-Type: application/json' -d '{ "query": { "match": { "openshift.labels.logs":"{{ log_labels }}" } }}'
       when: elasticsearch_server_url is defined
   ignore_errors: yes

@@ -9,16 +9,16 @@
     msg: Please check Channel variables for ClusterLogging and ElasticSearch Operators.
   when: >
         (cluster_logging_channel == "" or elastic_search_channel == "") or
-        (cluster_logging_channel == None or elastic_search_channel == None) or
-        clo_version | float <= 5.8
+        (cluster_logging_channel == None or elastic_search_channel == None)
+#        clo_version | float <= 5.8
 
 - name: Check channel variables
   fail:
     msg: Please check Channel variables for ClusterLogging and Loki Operators.
   when: >
         (cluster_logging_channel == "" or loki_channel == "") or
-        (cluster_logging_channel == None or loki_channel == None) or
-        clo_version | float >= 5.9
+        (cluster_logging_channel == None or loki_channel == None)
+#        clo_version | float > 5.9 or clo_version | float >= 6.0
 
 # Set log directory
 - set_fact:
@@ -280,7 +280,7 @@
 
 - name: Create ClusterLogging instance 
   include_tasks: "{{ role_path }}/files/clusterlogging.yml"
-  when: clo_version | float <= 5.8
+  # when: clo_version | float <= 5.8
 
 # Testcase-1 deployment of nginx pod in default namespace
 - name: Create a nginx pod in default namespace for test
