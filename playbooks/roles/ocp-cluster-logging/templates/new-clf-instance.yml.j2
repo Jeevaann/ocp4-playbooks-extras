@@ -40,7 +40,7 @@
           - kafka:
               brokers:
               - "{{ kafka_server_url }}/{{ app_log_label }}"
-              topic: app-topic-299
+              topic: {{ app_log_label }}
               tuning:
                 compression: snappy
                 delivery: atLeastOnce
@@ -48,8 +48,8 @@
             type: kafka
           - kafka:
               brokers:
-              - "{{ kafka_server_url }}/{{ app_log_label }}"
-              topic: audit-topic-300
+              - "{{ kafka_server_url }}/{{ audit_log_label }}"
+              topic: {{ audit_log_label }}
               tuning:
                 compression: snappy
                 delivery: atLeastOnce
@@ -57,8 +57,8 @@
             type: kafka
           - kafka:
               brokers:
-              - "{{ kafka_server_url }}/{{ app_log_label }}"
-              topic: infra-topic-299
+              - "{{ kafka_server_url }}/{{ infra_log_label }}"
+              topic: {{ infra_log_label }}
               tuning:
                 compression: snappy
                 delivery: atLeastOnce
