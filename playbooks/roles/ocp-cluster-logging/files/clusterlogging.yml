@@ -170,7 +170,38 @@
           namespaceSelector:
             matchLabels:
               openshift.io/cluster-monitoring: 'true'
-  when: clo_version | float >= 5.9
+  when: clo_version | float == 5.9
+
+# Create lokistack for 6.0 and above
+- name: Create lokistack
+  k8s:
+    state: present
+    definition:
+      apiVersion: loki.grafana.com/v1
+      kind: LokiStack
+      metadata:
+        name: lokistack-sample
+        namespace: openshift-logging
+      spec:
+        size: 1x.demo
+        replicationFactor: 1
+        storage:
+          secret:
+            name: lokicred-secret
+            type: s3
+        storageClassName: nfs-storage-provisioner
+        tenants:
+          mode: openshift-logging
+        rules:
+          enabled: true
+          selector:
+            matchLabels:
+              openshift.io/cluster-monitoring: 'true'
+          namespaceSelector:
+            matchLabels:
+              openshift.io/cluster-monitoring: 'true'
+  when: clo_version | float >= 6.0
+
 
 # Create a loki log forwarder
 - name: Create loki logforwarder

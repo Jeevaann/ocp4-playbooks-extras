@@ -77,10 +77,15 @@
     - "loki"
     - "cloudwatch"
     - "kibana-ldap"
+    - "lokistack"
 
 - set_fact: 
     syslog_server_logfile: "/var/log/messages"
     external_server_logs_path: "/root/clf_logs"
+
+- name: Pause for 2 minutes to get new logs
+  pause:
+    minutes: 2
 
 - name: Fetch the logs from external instances 
   block:
@@ -89,11 +94,11 @@
       - name: Save the logs on Kafka server
         shell: |
           mkdir -p {{ external_server_logs_path }}/kafka
-          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ app_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/audit.txt
-          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ audit_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/infrastructure.txt
-          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ infra_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/application.txt
-        async: 30
-        poll: 5
+          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ app_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/application.txt
+          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ audit_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/audit.txt
+          {{ kafka_path }}/kafka-console-consumer.sh --bootstrap-server {{ kafka_host }}:9092 --topic {{ infra_log_label }} --max-messages 10 > {{ external_server_logs_path }}/kafka/infrastructure.txt
+        async: 120
+        poll: 10
 
       - name: Copy the logs file from Kafka to bastion
         fetch:
@@ -106,6 +111,14 @@
         - "application"
       delegate_to: kafka
       when: kafka_server_url is defined
+
+
+    # Save the logs on external lokistack and fecth on bastion
+    - block:
+      - name: Save the logs for lokistack instance
+        shell: |
+          mkdir -p {{ cl_log_dir }}/lokistack
+          /root/Manisha/ocp4-playbooks-extras/playbooks/roles/ocp-cluster-logging/files/lokistack.sh          
 
     # Save the logs on external Syslog system and fecth on bastion
     - block:
@@ -146,6 +159,8 @@
         curl -G -s "{{ loki_server_url }}/api/prom/query" --data-urlencode 'query={log_type="infrastructure"}' > {{ cl_log_dir }}/loki/infrastructure.txt
         curl -G -s "{{ loki_server_url }}/api/prom/query" --data-urlencode 'query={log_type="audit"}' > {{ cl_log_dir }}/loki/audit.txt
         curl -G -s "{{ loki_server_url }}/api/prom/query" --data-urlencode 'query={log_type="application"}' > {{ cl_log_dir }}/loki/application.txt
+      async: 120
+      poll: 10
       when: loki_server_url is defined
 
     # Deleting CLF Custom Resource instance because Fluentd and CloudWatch stores the logs on their system
