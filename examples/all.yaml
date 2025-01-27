@@ -166,27 +166,27 @@ global_secret_update: false
 ocp_etcd: false
 
 ## ocp-cluster-log-forwarding required vars
-ocp_cluster_logging: false
-cluster_log_forwarder: false
-cluster_logging_channel: ""
-elastic_search_channel: ""
-loki_channel: ""
-elasticsearch_clf_cs: ""  # brew.registry.redhat.io/rh-osbs/iib:111110
-clusterlogging_clf_cs: "" # brew.registry.redhat.io/rh-osbs/iib:11111
-loki_clf_cs: ""  # brew.registry.redhat.io/rh-osbs/iib:111112
-log_label: ""
-elasticsearch_url: ""
-syslog_url: ""
-fluentd_url: ""
-kafka_url: ""
-kafka_path: "" # Location of kafka on external vm ex. /usr/local/kafka/bin 
-loki_url: ""
-cloudwatch_secret: ""
-aws_region: ""
+ocp_cluster_logging: true
+cluster_log_forwarder: true
+cluster_logging_channel: "stable-6.1"
+#elastic_search_channel: "stable-6.0"
+loki_channel: "stable-6.1"
+#elasticsearch_clf_cs: "brew.registry.redhat.io/rh-osbs/iib:"  # brew.registry.redhat.io/rh-osbs/iib:111110
+clusterlogging_clf_cs: "brew.registry.redhat.io/rh-osbs/iib:893166" # brew.registry.redhat.io/rh-osbs/iib:11111
+loki_clf_cs: "brew.registry.redhat.io/rh-osbs/iib:890420"  # brew.registry.redhat.io/rh-osbs/iib:111112
+log_label: "6.1_417"
+#lasticsearch_url: "http://10.20.187.131:9200"
+#syslog_url: ""
+#fluentd_url: ""
+#afka_url: "tcp://10.20.181.131:9092"
+#afka_path: "/usr/local/kafka/bin" # Location of kafka on external vm ex. /usr/local/kafka/bin 
+#loki_url: "http://10.20.187.131:3100"
+cloudwatch_secret: "cw-secret"
+aws_region: "ap-south-1"
 log_dir_path: "/root/clf_logs"
 kibana_ldap_validation: false
-log_collector_type: ""
-clf_clean_up: false
+log_collector_type: "vector"
+clf_clean_up: false 
 
 ## ocp-nfd-operator required vars
 ocp_nfd: false

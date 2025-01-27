@@ -112,13 +112,18 @@
       delegate_to: kafka
       when: kafka_server_url is defined
 
+    #Make lokistack.sh file executable
+    - name: Give executable permissions for lokistack.sh file
+      file:
+        path: /root/ocp4-playbooks-extras/playbooks/roles/ocp-cluster-logging/files/lokistack.sh
+        mode: '0555'
+        state: file
 
-    # Save the logs on external lokistack and fecth on bastion
-    - block:
-      - name: Save the logs for lokistack instance
-        shell: |
-          mkdir -p {{ cl_log_dir }}/lokistack
-          /root/Manisha/ocp4-playbooks-extras/playbooks/roles/ocp-cluster-logging/files/lokistack.sh          
+    # Save the logs on external lokistack and fetch on bastion
+    - name: Save the logs for lokistack instance
+      shell: |
+        mkdir -p {{ cl_log_dir }}/lokistack
+        /root/ocp4-playbooks-extras/playbooks/roles/ocp-cluster-logging/files/lokistack.sh          
 
     # Save the logs on external Syslog system and fecth on bastion
     - block:
